@@ -31,6 +31,18 @@ Alongside automation development, I'm strengthening my foundations in **Python, 
 
 ## Featured project
 
+### [Upwork Opportunity Assistant](projects/upwork-opportunity-assistant/README.md)
+
+**n8n · OpenAI · Supabase · Google Sheets · Gmail · GoHighLevel**  
+**Main workflow + companion daily digest | Sanitized exports available**
+
+A 29-node main workflow for email-based job intake, duplicate detection, AI opportunity scoring, portfolio retrieval, proposal drafting, critique and revision, CRM sync, and review alerts. A connected 6-node daily digest batches medium-priority opportunities from the same tracker.
+
+Proposals remain subject to **human review and manual submission**. Published documentation includes setup requirements and known validation items.
+
+[View both workflows and technical documentation →](projects/upwork-opportunity-assistant/README.md)
+
+
 ### [Multi-channel AI Agent](projects/multi-channel-ai-agent.md)
 
 **n8n · Supabase · Webhooks · Email · AI orchestration**  
@@ -50,7 +62,7 @@ The project brings together message normalization, customer matching, and conver
 | --- | --- | --- |
 | **AI Lead Generation Agent** | Discovers local businesses, extracts and verifies contact information, prepares personalized outreach, and stores deduplicated leads. | n8n, Apify, OpenAI, Google Sheets |
 | **Document-Based RAG Chatbot** | Processes documents into embeddings and retrieves relevant content so an assistant can answer from a knowledge base with source references. | n8n, Supabase, OpenAI |
-| **AI Upwork Opportunity Assistant** | Processes saved-search emails, removes duplicates, scores project fit, retrieves relevant experience, and drafts proposals for human review and manual submission. | n8n, email integration, AI, RAG |
+| **[Upwork Opportunity Assistant](projects/upwork-opportunity-assistant/README.md)** | Scores incoming jobs, retrieves portfolio context, drafts and critiques proposals, syncs GHL, and batches medium-priority jobs in a companion daily digest. | n8n, OpenAI, Supabase, Gmail, Sheets, GHL |
 | **City Weather Alert System** | Checks city temperatures on a schedule, records results, and sends email alerts. | n8n, OpenWeatherMap, Gmail |
 
 These are selected examples from my broader project experience; not all project implementations are published on GitHub.
