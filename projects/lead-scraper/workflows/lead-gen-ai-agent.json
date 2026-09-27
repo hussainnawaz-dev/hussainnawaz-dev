@@ -1,0 +1,158 @@
+{
+  "name": "Lead Gen AI Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        0
+      ],
+      "id": "017a212a-61a2-40e4-97fb-9fce5f83300b",
+      "name": "When chat message received"
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "You are a professional lead-generation assistant. When a user asks for leads for a specific business type and location, you will call the \"Call n8n Workflow Tool\" and send the user's request in a clean format in the search_query field (e.g., \"interior designers in Lahore\"). Once the process is complete, inform the user in a friendly manner that the process is complete and ask them to check the Google Sheet."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        208,
+        0
+      ],
+      "id": "804f33b8-4fd5-4562-9f8c-b74e3e9590e6",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        80,
+        208
+      ],
+      "id": "8e6a262e-12dd-4a91-ac74-122ed6ab706d",
+      "name": "OpenAI Chat Model"
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        224,
+        208
+      ],
+      "id": "b94b5913-43a0-40f4-a4da-9e83f60d4938",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "description": "This tool searches for local businesses on Google Maps, visits their websites to extract email addresses, and creates a personalized outreach email draft for each business. The results are automatically saved in Google Sheets. Input: search_query (e.g., \"interior designers in Lahore\" or \"dentists in Karachi\").",
+        "workflowId": {
+          "__rl": true,
+          "value": "YOUR_LEAD_SCRAPER_WORKFLOW_ID",
+          "mode": "id"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "search_query": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('search_query', ``, 'string') }}"
+          },
+          "matchingColumns": [
+            "search_query"
+          ],
+          "schema": [
+            {
+              "id": "search_query",
+              "displayName": "search_query",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        368,
+        208
+      ],
+      "id": "1b9af961-2bec-4d1b-8b1a-4eb9ec44b548",
+      "name": "Call 'Lead Scraper'"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'Lead Scraper'": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  }
+}
