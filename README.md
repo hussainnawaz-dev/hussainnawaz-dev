@@ -1,77 +1,105 @@
-# Hi, I'm Muhammad Hussain Nawaz 👋
+<div align="center">
 
-**Electrical Engineering Student | AI/ML Intern | n8n Automation Specialist | AI Workflow Developer**
+# Muhammad Hussain Nawaz
 
-I'm an Electrical Engineering student at COMSATS University Islamabad, Lahore Campus, with a strong interest in **AI/ML, intelligent automation, and practical software solutions**.
+### AI Automation Developer · n8n Workflows · AI & Machine Learning
 
-I enjoy turning real-world problems into working systems using automation, APIs, AI agents, and data. Alongside my automation work, I'm currently strengthening my foundations in **Python, data analysis, machine learning, deep learning, and modern AI** through hands-on projects.
+Building connected workflows that turn incoming data into useful actions.
 
-## 🚀 What I'm Working On
+**1+ year of hands-on experience · Worked on 20+ projects · 3 internships**
 
-- 🤖 AI agents and intelligent n8n workflows
-- 🧠 RAG and document-based AI assistants
-- 🔗 API integrations, webhooks, and automated data pipelines
-- 📊 Python, NumPy, Pandas, data analysis, and machine learning
-- 🌐 Practical web and automation solutions
+[Lahore, Pakistan](#about-me) &nbsp;·&nbsp; [Email](mailto:hussainnawaz.tech@gmail.com) &nbsp;·&nbsp; [Featured project](#featured-project) &nbsp;·&nbsp; [AI/ML learning repository](https://github.com/hussainnawaz-dev/AIML-Internship-MuhammadHussainNawaz)
 
-## 🛠️ Technical Skills
-
-**Automation & AI**
-- n8n Workflow Design
-- AI Agent Orchestration & Tool Calling
-- OpenAI API
-- Prompt Engineering
-- Retrieval-Augmented Generation (RAG)
-- Vector Embeddings & Semantic Search
-
-**APIs & Data**
-- REST APIs & Webhooks
-- Apify
-- Google Sheets & Google Drive API
-- Supabase / PostgreSQL / pgvector
-
-**Programming**
-- JavaScript
-- Python
-- MATLAB
-- Regex
-
-## 💼 Selected Projects
-
-### AI Lead Generation Agent
-Built an n8n-based AI system using **Apify and OpenAI** to discover local businesses, extract and verify contact information, generate personalized outreach, and store deduplicated leads in Google Sheets.
-
-### Document-Based RAG Chatbot
-Built a document ingestion and retrieval pipeline using **n8n, Supabase, and OpenAI**. Documents are processed into embeddings so an AI agent can answer questions from the uploaded knowledge base and reference the source document.
-
-### AI Upwork Opportunity Assistant
-Built a workflow that processes Upwork saved-search emails, removes duplicates, scores opportunities based on project fit, retrieves relevant past experience through RAG, and drafts proposals for **human review and manual submission**.
-
-### City Weather Alert System
-Built a scheduled n8n workflow using **OpenWeatherMap and Gmail** that checks temperatures for multiple cities, records results, and sends appropriate email alerts.
-
-## 🎓 AI/ML Internship Journey
-
-I'm currently completing a **6-week AI/ML Internship Program** covering:
-
-- **Week 1:** Python, NumPy, Pandas, Data Cleaning & Exploratory Data Analysis
-- **Week 2:** Machine Learning, Regression, Classification, Model Evaluation & Feature Engineering
-- **Week 3:** Neural Networks, TensorFlow/Keras, CNNs, RNNs & Model Tuning
-- **Week 4:** LLMs, Prompt Engineering, RAG, AI Agents & API Integration
-- **Weeks 5–6:** Individual Final AI/ML Project
-
-I use GitHub to document my progress, assignments, projects, and what I learn throughout the program.
-
-## 🎯 Current Focus
-
-My goal is to combine my Electrical Engineering background with **AI, machine learning, and automation** to build useful systems that solve real problems and save people time.
-
-## 📫 Connect
-
-- 📍 Lahore, Pakistan
-- 📧 hussainnawaz.tech@gmail.com
-- 💼 Open to remote and freelance automation projects alongside university coursework
+</div>
 
 ---
 
-*Learning by building, testing, and improving real systems.*
+## About me
+
+I'm an Electrical Engineering student at **COMSATS University Islamabad, Lahore Campus**, focused on **AI automation, API integrations, and practical software solutions**.
+
+I have **1+ year of hands-on experience** and have worked on **20+ projects**, developing my skills through building, testing, and improving real systems. My work connects AI models, business tools, and databases through workflows that reduce repetitive tasks and keep information organized.
+
+Alongside automation development, I'm strengthening my foundations in **Python, data analysis, machine learning, and deep learning**.
+
+## What I build
+
+- **AI-powered workflows** — message processing, intent classification, and context-aware assistants.
+- **Business automation** — lead collection, opportunity screening, alerts, and CRM updates.
+- **Connected systems** — REST APIs, webhooks, data normalization, and database integrations.
+- **Knowledge-based assistants** — document retrieval, embeddings, and grounded responses.
+
+## Featured project
+
+### [Multi-channel AI Agent](projects/multi-channel-ai-agent.md)
+
+**n8n · Supabase · Webhooks · Email · AI orchestration**  
+**Status: In development | Big Brain internship project**
+
+A centralized customer communication system designed to connect **website chat, email, and WhatsApp** to one shared customer profile and AI workflow.
+
+The project brings together message normalization, customer matching, and conversation storage, with a roadmap for shared knowledge retrieval, cross-channel context, channel-specific responses, and human escalation. WhatsApp can be simulated through a webhook during development.
+
+**Why it matters:** Customers can move between channels while the business maintains a consistent view of their interactions.
+
+[Explore the architecture, data model, and implementation roadmap →](projects/multi-channel-ai-agent.md)
+
+## Selected projects
+
+| Project | What it does | Core tools |
+| --- | --- | --- |
+| **AI Lead Generation Agent** | Discovers local businesses, extracts and verifies contact information, prepares personalized outreach, and stores deduplicated leads. | n8n, Apify, OpenAI, Google Sheets |
+| **Document-Based RAG Chatbot** | Processes documents into embeddings and retrieves relevant content so an assistant can answer from a knowledge base with source references. | n8n, Supabase, OpenAI |
+| **AI Upwork Opportunity Assistant** | Processes saved-search emails, removes duplicates, scores project fit, retrieves relevant experience, and drafts proposals for human review and manual submission. | n8n, email integration, AI, RAG |
+| **City Weather Alert System** | Checks city temperatures on a schedule, records results, and sends email alerts. | n8n, OpenWeatherMap, Gmail |
+
+These are selected examples from my broader project experience; not all project implementations are published on GitHub.
+
+## Internship experience
+
+| Organization | Role / Focus |
+| --- | --- |
+| **Big Brain** | **AI Automation Intern — n8n:** Multi-channel AI Agent development, workflow design, channel integrations, and centralized customer data. |
+| **Progree** | **Artificial Intelligence Intern** |
+| **Zynvex** | **AI & Machine Learning Intern** |
+
+I use projects and internship work to connect technical learning with practical implementation, documentation, and testing.
+
+## Technical toolkit
+
+| Area | Technologies & skills |
+| --- | --- |
+| **Automation & orchestration** | n8n, workflow design, branching, API integrations, webhooks |
+| **AI applications** | OpenAI API, prompt engineering, AI agents, tool calling, RAG |
+| **Retrieval & storage** | Supabase, PostgreSQL, pgvector, vector embeddings, semantic search |
+| **Business & data integrations** | Google Sheets, Google Drive API, Gmail, Apify |
+| **Programming** | JavaScript, Python, MATLAB, regular expressions |
+| **Developing further** | NumPy, Pandas, exploratory data analysis, model evaluation, machine learning, deep learning |
+
+## Engineering approach
+
+- Start with the business problem and define a clear workflow.
+- Normalize incoming data before connecting downstream steps.
+- Keep customer records and conversation history consistent.
+- Test missing information, duplicates, and failure paths.
+- Use human review where decisions need judgment.
+- Document the system so it can be understood and improved.
+
+## Current direction
+
+I'm working toward combining **engineering, AI, and automation** to build useful business systems, while expanding my machine learning skills through hands-on study and projects.
+
+[Follow my AI/ML internship work →](https://github.com/hussainnawaz-dev/AIML-Internship-MuhammadHussainNawaz)
+
+## Let's connect
+
+I'm open to **remote internships, freelance automation projects, and practical collaborations** alongside my university studies.
+
+**Email:** [hussainnawaz.tech@gmail.com](mailto:hussainnawaz.tech@gmail.com)  
+**Location:** Lahore, Pakistan
+
+---
+
+<div align="center">
+Build with purpose. Test carefully. Keep improving.
+</div>
