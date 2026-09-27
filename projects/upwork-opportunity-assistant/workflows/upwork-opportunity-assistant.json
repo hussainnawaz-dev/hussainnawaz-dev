@@ -1,0 +1,1488 @@
+{
+  "name": "Upwork Opportunity Assistant",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "simple": false,
+        "maxResults": 25,
+        "filters": {
+          "sender": "vollna.com"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -1520,
+        -304
+      ],
+      "id": "36654607-52ca-40ca-920a-eba32fd72dc1",
+      "name": "Gmail Trigger"
+    },
+    {
+      "parameters": {
+        "jsCode": "const text = $input.first().json.text;\n\n// Title (# ke baad wali line)\nconst subject = $input.first().json.subject || \"\";\nlet title = subject.replace(/^New Job:\\s*/i, \"\").replace(/^#\\s*/, \"\").trim();\nif (!title) title = \"Unknown\";\n\n// Budget (Hourly ya Fixed, jo bhi ho)\nconst rateMatch = text.match(/Hourly Rate: (.+)/);\nconst fixedMatch = text.match(/Fixed[- ]?[Pp]rice: (.+)/);\nconst budget = rateMatch ? `Hourly: ${rateMatch[1].trim()}` \n             : fixedMatch ? `Fixed: ${fixedMatch[1].trim()}` \n             : \"Unknown\";\n\n// Description (Filter line ke baad se, Client rank se pehle tak)\nconst descMatch = text.match(/Filter:[\\s\\S]*?\\]\\s*\\n\\n([\\s\\S]*?)\\n\\nClient rank:/);\nconst description = descMatch ? descMatch[1].replace(/\\s+/g, ' ').trim() : \"Unknown\";\n\n// Client Info\nconst clientRankMatch = text.match(/Client rank: (\\w+)/);\nconst clientRank = clientRankMatch ? clientRankMatch[1] : \"Unknown\";\n\nconst paymentVerified = text.includes(\"Payment method verified\");\n\nconst reviewsMatch = text.match(/(no reviews|[\\d.]+ of \\d+ reviews)/);\nconst reviews = reviewsMatch ? reviewsMatch[1] : \"Unknown\";\n\nconst registeredMatch = text.match(/Registered: (.+)/);\nconst registered = registeredMatch ? registeredMatch[1].trim() : \"Unknown\";\n\n// Job URL (Upwork wala asal link, tracking link ke andar se decode karke)\nconst urlBlockMatch = text.match(/View on Upwork[\\s\\S]*?\\[(https:\\/\\/[^\\]]+)\\]/);\nlet jobUrl = \"Unknown\";\nif (urlBlockMatch) {\n  const trackingUrl = urlBlockMatch[1];\n  // Sirf percent-encoded hissa pakड़o, tracking service ka apna path suffix chhoड़ do\n  const urlParamMatch = trackingUrl.match(/url=([^\\/\\]]+)/);\n  if (urlParamMatch) {\n    // Jab tak decode stable na ho jaye, baar baar decode karo (kyunki ye 2-3 baar encoded hai)\n    let decoded = urlParamMatch[1];\n    for (let i = 0; i < 5; i++) {\n      const next = decodeURIComponent(decoded);\n      if (next === decoded) break;\n      decoded = next;\n    }\n    jobUrl = decoded;\n  }\n}\n\nreturn {\n  json: {\n    title: title,\n    description: description,\n    budget: budget,\n    skills: [],\n    job_url: jobUrl,\n    client_info: {\n      rank: clientRank,\n      payment_verified: paymentVerified,\n      reviews: reviews,\n      registered: registered\n    }\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1312,
+        -304
+      ],
+      "id": "b372296c-58b7-413a-a396-3f594b8d62db",
+      "name": "Parse Job Data"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Sheet1",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -1280,
+        -16
+      ],
+      "id": "1d018371-14f2-4fa7-a38a-fba0ef460e79",
+      "name": "Check Duplicate",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const jobData = $input.first().json;\n\n// URL se unique ID nikalna (jo ~ ke baad wala hissa hai)\nconst idMatch = jobData.job_url.match(/~([a-zA-Z0-9]+)/);\nconst jobId = idMatch ? idMatch[1] : \"Unknown\";\n\nreturn {\n  json: {\n    ...jobData,\n    job_id: jobId\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1456,
+        -16
+      ],
+      "id": "4e13a5b7-3a3a-4460-b2b2-be258ca7b4cb",
+      "name": "Extract Job ID"
+    },
+    {
+      "parameters": {
+        "jsCode": "const currentJobId = $('Extract Job ID').first().json.job_id;\nconst existingRows = $input.all(); // Google Sheets se aayi saari rows\n\n// Saari existing job_ids ki list banao\nconst existingIds = existingRows.map(row => row.json.job_id);\n\n// Check karo kya current job pehle se list mein hai\nconst isDuplicate = existingIds.includes(currentJobId);\n\nreturn {\n  json: {\n    ...$('Extract Job ID').first().json,\n    is_duplicate: isDuplicate\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1088,
+        -16
+      ],
+      "id": "4dd720ee-794e-4f3a-8fc6-094ea5329150",
+      "name": "Compare Duplicate"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "be1497a1-b571-45d4-96c2-ebd1aeec90c3",
+              "leftValue": "={{ $json.is_duplicate }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -928,
+        -16
+      ],
+      "id": "b905a83e-cd26-4d92-979d-7ed0129e14b1",
+      "name": "Duplicate Check"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Sheet1",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "job_id": "={{ $json.job_id }}",
+            "title": "={{ $json.title }}",
+            "job_url": "={{ $json.job_url }}",
+            "date_detected": "={{ $now }}",
+            "status": "Detected"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "job_id",
+              "displayName": "job_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "title",
+              "displayName": "title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "job_url",
+              "displayName": "job_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "date_detected",
+              "displayName": "date_detected",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "score",
+              "displayName": "score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -1456,
+        256
+      ],
+      "id": "4933ce95-1652-4906-bf3a-803639c0a709",
+      "name": "Save New Job"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are an expert freelance opportunity evaluator. You will score Upwork job postings for a freelancer based on their profile. You must be honest and critical — do not inflate scores. If information is missing (like client history or competition), do not guess or invent it; treat it as neutral/unknown in your reasoning.\n\nFreelancer Profile:\n- Skills: n8n workflow automation, AI agents, RAG chatbots, lead generation systems, web development\n- Experience: Built 20+ n8n workflows including AI lead generation systems (Google Maps scraping + email automation) and RAG-based document chatbots (Supabase vector storage)\n- Target clients: E-commerce store owners, marketing agencies\n- Rate: $18/hour (Upwork), project-based on Fiverr\n- Strengths: End-to-end automation systems, AI integration, clean workflow architecture\n\nScore the job on these factors (0-100 each), then give an overall score (0-100):\n1. Skill Match — how well job requirements match the freelancer's skills\n2. Project Fit — how well the project type matches freelancer's experience/portfolio\n3. Budget Suitability — is the budget reasonable for the scope of work\n4. Client Quality — based on available signals like \"Payment Verified\" status (if unavailable, mark as Unknown and don't penalize)\n5. Competition — based on number of proposals if available (fewer proposals = better; if unavailable, mark Unknown)\n6. Requirements Clarity — is the job description clear and specific, or vague\n\nRespond ONLY in valid JSON, no extra text, in this exact format:\n{\n  \"overall_score\": number,\n  \"skill_match\": number,\n  \"project_fit\": number,\n  \"budget_suitability\": number,\n  \"client_quality\": number or \"Unknown\",\n  \"competition\": number or \"Unknown\",\n  \"requirements_clarity\": number,\n  \"reason\": \"short 1-2 sentence explanation\"\n}"
+            },
+            {
+              "content": "=Job Title: {{ $('Compare Duplicate').item.json.title }}\nDescription: {{ $('Compare Duplicate').item.json.description }}\nBudget: {{ $('Compare Duplicate').item.json.budget }}\nSkills Required: {{ $('Compare Duplicate').item.json.skills.join(', ') }}\nClient Info: {{ JSON.stringify($('Compare Duplicate').item.json.client_info) }}"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {
+          "textFormat": {
+            "textOptions": {
+              "type": "json_object"
+            }
+          }
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        -1280,
+        256
+      ],
+      "id": "ca0b89c6-18a8-4a3a-bee6-26b9c10d7268",
+      "name": "Score Opportunity"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Sheet1",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "job_id": "={{ $('Compare Duplicate').item.json.job_id }}",
+            "status": "=Qualified",
+            "score": "={{ $json.output[0].content[0].text.overall_score }}"
+          },
+          "matchingColumns": [
+            "job_id"
+          ],
+          "schema": [
+            {
+              "id": "job_id",
+              "displayName": "job_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "title",
+              "displayName": "title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "job_url",
+              "displayName": "job_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "date_detected",
+              "displayName": "date_detected",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "score",
+              "displayName": "score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -976,
+        256
+      ],
+      "id": "b38f78da-dbb5-432a-b572-e18b14837880",
+      "name": "Update row in sheet"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Score Opportunity').item.json.output[0].content[0].text.overall_score }}",
+                    "rightValue": 70,
+                    "operator": {
+                      "type": "number",
+                      "operation": "gte"
+                    },
+                    "id": "de3a1be3-8ad6-478f-94fc-2bc7d9a05975"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "High"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "c936b7e5-17df-410a-bdca-dd331cb7c692",
+                    "leftValue": "={{ $('Score Opportunity').item.json.output[0].content[0].text.overall_score }}",
+                    "rightValue": 60,
+                    "operator": {
+                      "type": "number",
+                      "operation": "gte"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Medium"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "893d02a9-a363-4323-a334-dc2ef9528c28",
+                    "leftValue": "={{ $('Score Opportunity').item.json.output[0].content[0].text.overall_score }}",
+                    "rightValue": 60,
+                    "operator": {
+                      "type": "number",
+                      "operation": "lte"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Low"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -784,
+        240
+      ],
+      "id": "51e0acca-815a-4846-9cd0-ebe8a4a88112",
+      "name": "Priority Router"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/embeddings",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "=     {\n       \"model\": \"text-embedding-3-small\",\n       \"input\": \"{{ $('Compare Duplicate').item.json.title }} {{ $('Compare Duplicate').item.json.description }} {{ $('Compare Duplicate').item.json.skills.join(', ') }}\"\n     }",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -512,
+        -48
+      ],
+      "id": "50e590d7-d99f-44dd-8448-3381bc399d37",
+      "name": "Embed Job"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://YOUR_PROJECT_REF.supabase.co/rest/v1/rpc/match_portfolio_projects",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "YOUR_SUPABASE_KEY"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_SUPABASE_KEY"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ query_embedding: $json.data[0].embedding, match_threshold: 0.5, match_count: 1 }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -320,
+        -48
+      ],
+      "id": "f6272cd7-98a3-49f0-a282-971f4de6fda4",
+      "name": "Find Best Match",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are a freelance proposal writer helping a freelancer named Muhammad Hussain Nawaz write a personalized Upwork proposal. \n\nRules you MUST follow:\n- Address the client's specific problem, not generic claims\n- Reference the relevant past project naturally, don't force it\n- NEVER invent fake clients, fake results, or fake experience beyond what is provided\n- Only state results/outcomes that are explicitly given in the \"Results\" field below. Do not paraphrase results in a way that changes their meaning or adds specifics (like percentages, engagement rates, or metrics) that were not explicitly provided.\n- Keep it concise (150-200 words max), no fluff or buzzwords\n- Use natural, human, conversational tone — not corporate or salesy\n- End with a simple, low-pressure call to action (e.g. asking a clarifying question or suggesting a quick chat)\n- Do not use generic openers like \"I am excited to apply\" or \"I have read your job posting carefully\"\n-   If no directly matching past project is available, write the proposal based on the freelancer's general skill set (n8n, AI agents, automation) without forcing an irrelevant project reference.\n\nWrite only the proposal text, nothing else (no explanation, no headers)."
+            },
+            {
+              "content": "=Job Title: {{ $('Compare Duplicate').item.json.title }}\nJob Description: {{ $('Compare Duplicate').item.json.description }}\nBudget: {{ $('Compare Duplicate').item.json.budget }}\n\nRelevant Past Project:\nName: {{ $('Handle No Match').item.json.project_name }}\nProblem it solved: {{ $('Find Best Match').item.json[0].problem }}\nSolution: {{ $('Find Best Match').item.json[0].solution }}\nResults: {{ $('Find Best Match').item.json[0].results }}\n\nWrite a personalized proposal for this job using the freelancer's relevant experience above."
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        48,
+        -48
+      ],
+      "id": "78015ca7-6e78-45ff-aa9e-b91df784d7f3",
+      "name": "Generate Proposal"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are a strict proposal quality reviewer. You will check a freelance proposal against the original job and the freelancer's actual project data, and flag any issues.\n\nCheck for:\n1. Does it address the client's specific problem? (not generic)\n2. Is the relevant past project mentioned naturally?\n3. Is it free of fake/invented claims — does every stated result or outcome match EXACTLY what was provided in the source data (no added metrics, percentages, or embellished outcomes)?\n4. Is it concise (not too long, no fluff/buzzwords)?\n5. Does it have a clear, low-pressure call to action?\n6. Does it sound natural and human, not corporate/salesy?\n\nRespond ONLY in valid JSON:\n{\n  \"quality_score\": number (0-100),\n  \"issues_found\": [\"list of specific issues, empty array if none\"],\n  \"needs_revision\": true or false,\n  \"feedback\": \"short 1-2 sentence summary for revision guidance\"\n}"
+            },
+            {
+              "content": "=Original Job Description: {{ $('Compare Duplicate').item.json.description }}\n\nSource Project Data (Results field - proposal must not exceed this):\n{{ $('Find Best Match').item.json[0].results }}\n\nGenerated Proposal:\n{{ $('Generate Proposal').item.json.output[0].content[0].text }}"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        336,
+        -48
+      ],
+      "id": "7fb238bd-20b9-46c3-8fac-160d8ed5ceab",
+      "name": "Critic Proposal"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\n// Agar attempt count pehle se set nahi, to 1 se start karo\nconst currentAttempt = data.attempt_number || 1;\n\nreturn {\n  json: {\n    ...data,\n    attempt_number: currentAttempt\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1296,
+        -560
+      ],
+      "id": "67786d7e-d9aa-4998-90ec-dd55a267620c",
+      "name": "Set Attempt Counter"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "2272783d-290b-41a0-85b0-b1e6b9739ca6",
+              "leftValue": "={{ $json.needs_revision }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        784,
+        -48
+      ],
+      "id": "3ed9a943-7d1e-4e4f-9cd2-aaba0e7c9257",
+      "name": "Needs Revision?"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are a freelance proposal writer helping a freelancer named Muhammad Hussain Nawaz write a personalized Upwork proposal. \n\nRules you MUST follow:\n- Address the client's specific problem, not generic claims\n- Reference the relevant past project naturally, don't force it\n- NEVER invent fake clients, fake results, or fake experience beyond what is provided\n- Only state results/outcomes that are explicitly given in the \"Results\" field below. Do not paraphrase results in a way that changes their meaning or adds specifics (like percentages, engagement rates, or metrics) that were not explicitly provided.\n- Keep it concise (150-200 words max), no fluff or buzzwords\n- Use natural, human, conversational tone — not corporate or salesy\n- End with a simple, low-pressure call to action (e.g. asking a clarifying question or suggesting a quick chat)\n- Do not use generic openers like \"I am excited to apply\" or \"I have read your job posting carefully\"\n\nWrite only the proposal text, nothing else (no explanation, no headers)."
+            },
+            {
+              "content": "=Job Title: {{ $('Compare Duplicate').item.json.title }}\nJob Description: {{ $('Compare Duplicate').item.json.description }}\nBudget: {{ $('Compare Duplicate').item.json.budget }}\n\nRelevant Past Project:\nName: {{ $('Find Best Match').item.json[0].project_name }}\nProblem it solved: {{ $('Find Best Match').item.json[0].problem }}\nSolution: {{ $('Find Best Match').item.json[0].solution }}\nResults: {{ $('Find Best Match').item.json[0].results }}\n\nPrevious proposal draft (needs revision):\n{{ $('Generate Proposal').item.json.output[0].content[0].text }}\n\nCritic feedback (fix these issues):\n{{ JSON.parse($('Critic Proposal').item.json.output[0].content[0].text).feedback }}\n\nWrite an improved version of the proposal addressing the feedback."
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        1008,
+        -272
+      ],
+      "id": "cb2f08c8-8885-4e62-b1bc-090efe5dcb5a",
+      "name": "Revise Proposal"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\nconst prevAttempt = $('Set Attempt Counter').first().json.attempt_number;\n\nreturn {\n  json: {\n    ...data,\n    attempt_number: prevAttempt + 1\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1616,
+        -528
+      ],
+      "id": "786438c5-3f8a-4bd2-ab17-36af02b5a79c",
+      "name": "Increment Attempt"
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json.output[0].content[0].text;\n\n// Agar AI ne ```json fence laga di ho, usay hata do\nconst cleaned = raw.replace(/```json\\s*/g, \"\").replace(/```/g, \"\").trim();\n\nlet parsed;\ntry {\n  parsed = JSON.parse(cleaned);\n} catch (e) {\n  // Agar parsing fail ho jaye, safe default do (human review ke liye flag)\n  parsed = {\n    quality_score: 0,\n    issues_found: [\"Failed to parse critic response\"],\n    needs_revision: false,\n    feedback: \"Parsing error - needs manual review\"\n  };\n}\n\nreturn {\n  json: {\n    ...$input.first().json,\n    quality_score: parsed.quality_score,\n    issues_found: parsed.issues_found,\n    needs_revision: parsed.needs_revision,\n    feedback: parsed.feedback\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        624,
+        -48
+      ],
+      "id": "4e1f2098-4916-4ab8-b3c2-6c69986abc89",
+      "name": "Parse Critic Result"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are a strict proposal quality reviewer. You will check a freelance proposal against the original job and the freelancer's actual project data, and flag any issues.\n\nCheck for:\n1. Does it address the client's specific problem? (not generic)\n2. Is the relevant past project mentioned naturally?\n3. Is it free of fake/invented claims — does every stated result or outcome match EXACTLY what was provided in the source data (no added metrics, percentages, or embellished outcomes)?\n4. Is it concise (not too long, no fluff/buzzwords)?\n5. Does it have a clear, low-pressure call to action?\n6. Does it sound natural and human, not corporate/salesy?\n\nRespond ONLY in valid JSON:\n{\n  \"quality_score\": number (0-100),\n  \"issues_found\": [\"list of specific issues, empty array if none\"],\n  \"needs_revision\": true or false,\n  \"feedback\": \"short 1-2 sentence summary for revision guidance\"\n}"
+            },
+            {
+              "content": "=Original Job Description: {{ $('Compare Duplicate').item.json.description }}\n\nSource Project Data (Results field - proposal must not exceed this):\n{{ $('Find Best Match').item.json[0].results }}\n\nGenerated Proposal:\nGenerated Proposal:\n{{ $('Revise Proposal').item.json.output[0].content[0].text }}"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        1312,
+        -272
+      ],
+      "id": "e95e3bd7-94e4-4204-9be4-456f3ade3afb",
+      "name": "Critic Proposal 2"
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json.output[0].content[0].text;\n\n// Agar AI ne ```json fence laga di ho, usay hata do\nconst cleaned = raw.replace(/```json\\s*/g, \"\").replace(/```/g, \"\").trim();\n\nlet parsed;\ntry {\n  parsed = JSON.parse(cleaned);\n} catch (e) {\n  // Agar parsing fail ho jaye, safe default do (human review ke liye flag)\n  parsed = {\n    quality_score: 0,\n    issues_found: [\"Failed to parse critic response\"],\n    needs_revision: false,\n    feedback: \"Parsing error - needs manual review\"\n  };\n}\n\nreturn {\n  json: {\n    ...$input.first().json,\n    quality_score: parsed.quality_score,\n    issues_found: parsed.issues_found,\n    needs_revision: parsed.needs_revision,\n    feedback: parsed.feedback\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1632,
+        -272
+      ],
+      "id": "f6083361-ad3b-44b0-87e0-4cba6e5c40cb",
+      "name": "Parse Critic Result 2"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Sheet1",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "job_id": "={{ $('Compare Duplicate').item.json.job_id }}",
+            "status": "Proposal Ready",
+            "proposal_text": "={{ $json.proposal_text }}",
+            "proposal_quality_score": "={{ $json.proposal_quality_score }}"
+          },
+          "matchingColumns": [
+            "job_id"
+          ],
+          "schema": [
+            {
+              "id": "job_id",
+              "displayName": "job_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "title",
+              "displayName": "title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "job_url",
+              "displayName": "job_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "date_detected",
+              "displayName": "date_detected",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "score",
+              "displayName": "score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "proposal_text",
+              "displayName": "proposal_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "proposal_quality_score",
+              "displayName": "proposal_quality_score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1216,
+        208
+      ],
+      "id": "6c088124-06d8-4ccd-8c5b-26a063a431ff",
+      "name": "Save Final Proposal"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\n\n// Check karo kya ye Revise Proposal se aaya (structure check karke)\nconst isFromRevision = $('Revise Proposal').isExecuted && $('Parse Critic Result 2').isExecuted;\n\nlet proposalText, qualityScore;\n\nif (isFromRevision) {\n  proposalText = $('Revise Proposal').item.json.output[0].content[0].text;\n  qualityScore = $('Parse Critic Result 2').item.json.quality_score;\n} else {\n  proposalText = $('Generate Proposal').item.json.output[0].content[0].text;\n  qualityScore = $('Parse Critic Result').item.json.quality_score;\n}\n\nreturn {\n  json: {\n    job_id: $('Compare Duplicate').item.json.job_id,\n    proposal_text: proposalText,\n    proposal_quality_score: qualityScore\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1024,
+        208
+      ],
+      "id": "e70d9253-bc84-482b-9d14-1bc4beaf734d",
+      "name": "Prepare Final Data"
+    },
+    {
+      "parameters": {
+        "sendTo": "you@example.com",
+        "subject": "=🎯 High-Priority Upwork Job: {{ $('Compare Duplicate').item.json.title }}",
+        "emailType": "text",
+        "message": "=     New High-Priority Job Found!       Title: {{ $('Compare Duplicate').item.json.title }}      Budget: {{ $('Compare Duplicate').item.json.budget }}      Score: {{ $('Score Opportunity').item.json.output[0].content[0].text.overall_score }}/100      Proposal Quality: {{ $('Prepare Final Data').item.json.proposal_quality_score }}/100       Job Link: {{ $('Compare Duplicate').item.json.job_url }}       Draft Proposal:      {{ $('Prepare Final Data').item.json.proposal_text }}       Review and submit manually on Upwork.",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1600,
+        208
+      ],
+      "id": "9b6d9bbf-1547-4f32-a95f-a8b47c6c5e42",
+      "name": "Send a message"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Sheet1",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "job_id": "={{ $('Compare Duplicate').item.json.job_id }}",
+            "status": "Low Priority"
+          },
+          "matchingColumns": [
+            "job_id"
+          ],
+          "schema": [
+            {
+              "id": "job_id",
+              "displayName": "job_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "title",
+              "displayName": "title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "job_url",
+              "displayName": "job_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "date_detected",
+              "displayName": "date_detected",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "score",
+              "displayName": "score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "proposal_text",
+              "displayName": "proposal_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "proposal_quality_score",
+              "displayName": "proposal_quality_score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -528,
+        544
+      ],
+      "id": "6f9598fc-a4f0-42f0-b7a4-83040089c2d6",
+      "name": "Log Low Priority"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Sheet1",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "job_id": "={{ $('Compare Duplicate').item.json.job_id }}",
+            "status": "Medium Priority - Pending Digest"
+          },
+          "matchingColumns": [
+            "job_id"
+          ],
+          "schema": [
+            {
+              "id": "job_id",
+              "displayName": "job_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "title",
+              "displayName": "title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "job_url",
+              "displayName": "job_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "date_detected",
+              "displayName": "date_detected",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "score",
+              "displayName": "score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "proposal_text",
+              "displayName": "proposal_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "proposal_quality_score",
+              "displayName": "proposal_quality_score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -512,
+        256
+      ],
+      "id": "dcbe5f2b-e548-4103-8996-6ac3a4481b4e",
+      "name": "Update row in sheet1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://services.leadconnectorhq.com/opportunities/",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n       \"pipelineId\": \"YOUR_PIPELINEID\",\n       \"locationId\": \"YOUR_LOCATIONID\",\n       \"name\": \"{{ $('Compare Duplicate').item.json.title }}\",\n       \"pipelineStageId\": \"YOUR_PIPELINESTAGEID\",\n       \"status\": \"open\",\n       \"monetaryValue\": 0\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1408,
+        208
+      ],
+      "id": "f5178ea6-6ee6-4cd0-ad48-300739b3da71",
+      "name": "Sync to GHL"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\nif (items.length === 0 || !items[0].json.project_name) {\n  return {\n    json: {\n      project_name: \"No directly matching project\",\n      problem: \"N/A\",\n      solution: \"N/A\",\n      results: \"N/A\",\n      similarity: 0\n    }\n  };\n}\n\nreturn items[0];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -144,
+        -48
+      ],
+      "id": "1fe47f25-851c-4b1d-851d-64910a02b7b7",
+      "name": "Handle No Match"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://services.leadconnectorhq.com/opportunities/",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "=   {\n     \"pipelineId\": \"YOUR_PIPELINEID\",\n     \"locationId\": \"YOUR_LOCATIONID\",\n     \"name\": \"{{ $('Compare Duplicate').item.json.title }}\",\n     \"pipelineStageId\": \"YOUR_PIPELINESTAGEID\",\n     \"status\": \"open\",\n     \"monetaryValue\": 0\n   }",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -288,
+        256
+      ],
+      "id": "890739a9-3114-4334-a439-55c3e3e42b12",
+      "name": "Sync to GHL - Qualified"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "Parse Job Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Job Data": {
+      "main": [
+        [
+          {
+            "node": "Extract Job ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Job ID": {
+      "main": [
+        [
+          {
+            "node": "Check Duplicate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Duplicate": {
+      "main": [
+        [
+          {
+            "node": "Compare Duplicate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compare Duplicate": {
+      "main": [
+        [
+          {
+            "node": "Duplicate Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Duplicate Check": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Save New Job",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save New Job": {
+      "main": [
+        [
+          {
+            "node": "Score Opportunity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Score Opportunity": {
+      "main": [
+        [
+          {
+            "node": "Update row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Priority Router",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Priority Router": {
+      "main": [
+        [
+          {
+            "node": "Embed Job",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update row in sheet1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Low Priority",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embed Job": {
+      "main": [
+        [
+          {
+            "node": "Find Best Match",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Best Match": {
+      "main": [
+        [
+          {
+            "node": "Handle No Match",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Proposal": {
+      "main": [
+        [
+          {
+            "node": "Critic Proposal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Attempt Counter": {
+      "main": [
+        []
+      ]
+    },
+    "Critic Proposal": {
+      "main": [
+        [
+          {
+            "node": "Parse Critic Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Needs Revision?": {
+      "main": [
+        [
+          {
+            "node": "Revise Proposal",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Final Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Revise Proposal": {
+      "main": [
+        [
+          {
+            "node": "Critic Proposal 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Increment Attempt": {
+      "main": [
+        []
+      ]
+    },
+    "Parse Critic Result": {
+      "main": [
+        [
+          {
+            "node": "Needs Revision?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Critic Proposal 2": {
+      "main": [
+        [
+          {
+            "node": "Parse Critic Result 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Critic Result 2": {
+      "main": [
+        [
+          {
+            "node": "Prepare Final Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Final Proposal": {
+      "main": [
+        [
+          {
+            "node": "Sync to GHL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Final Data": {
+      "main": [
+        [
+          {
+            "node": "Save Final Proposal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sync to GHL": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Handle No Match": {
+      "main": [
+        [
+          {
+            "node": "Generate Proposal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update row in sheet1": {
+      "main": [
+        [
+          {
+            "node": "Sync to GHL - Qualified",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  }
+}
