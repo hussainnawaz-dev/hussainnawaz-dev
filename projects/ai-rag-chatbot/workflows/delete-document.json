@@ -1,0 +1,81 @@
+{
+  "name": "Delete Document from Knowledge Base",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Delete a Document",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Document Filename to Delete"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.6,
+      "position": [
+        0,
+        0
+      ],
+      "id": "719e7f61-0ed1-4e94-84e3-430c0ca4dd45",
+      "name": "On form submission"
+    },
+    {
+      "parameters": {
+        "method": "DELETE",
+        "url": "https://YOUR_PROJECT_REF.supabase.co/rest/v1/documents",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "metadata->>source",
+              "value": "=ilike.*{{ $json[\"Document Filename to Delete\"] }}*"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        208,
+        0
+      ],
+      "id": "28646ba0-07d2-406c-8105-a971b71d9f98",
+      "name": "HTTP Request"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  }
+}
