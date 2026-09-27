@@ -1,0 +1,634 @@
+{
+  "name": "AI RAG Chatbot",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "pdf",
+        "binaryPropertyName": "Upload_PDF",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        432,
+        -240
+      ],
+      "id": "5d7caf96-bc7f-49e8-9ae5-cab58f172759",
+      "name": "Extract from File",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "You are a document-based assistant. Whenever you provide an answer using the \"Search Documents\" tool, include the name of the source document in brackets at the end of your response, like: \"(Source: filename.pdf)\". If the answer is not found in the document, clearly state that this information is not available.\n\nIf the user asks which files/documents are uploaded or what is in the knowledge base, call the \"Search Documents\" tool with a general query (such as \"document overview\" or \"summary\"), and create a list for the user of all unique source filenames found in the results. Show duplicate filenames only once.\n\nWhen displaying the list of documents, show the filename in its EXACT ORIGINAL FORM (including underscores and extensions like .pdf). Do not reformat or humanize it. This is necessary so the user can copy the exact name for delete operations.\n\nAlways at the very end of your response, regardless of the response type (direct answer or list), provide the source document name in this exact format: (Source: filename.pdf). If the answer is retrieved from multiple documents, separate them all with commas inside the same bracket, like: (Source: file1.pdf, file2.pdf). Even if document names are already listed in the response body, still add this bracket at the end to keep the format consistent.\n\nIf the user asks a question mentioning a specific document name (e.g., \"in my CV\" or \"in Tech.pdf\"), focus solely on the content of that specific document and do not mix data from other documents."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1648,
+        -32
+      ],
+      "id": "4897f7a2-35a3-4971-ad40-bf8ade490985",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        1616,
+        272
+      ],
+      "id": "005d3809-0893-4c3a-adf6-d24340a23dc8",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        736,
+        416
+      ],
+      "id": "65d5565f-ae29-442f-8030-56a57d40399d",
+      "name": "Embeddings OpenAI"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        1472,
+        384
+      ],
+      "id": "760aebec-4a7e-4acb-88d8-bc5cac8c44fd",
+      "name": "OpenAI Chat Model"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        1856,
+        400
+      ],
+      "id": "8c46cc7d-86fe-4aaf-a768-a984202df60d",
+      "name": "Query Embeddings"
+    },
+    {
+      "parameters": {
+        "jsonMode": "expressionData",
+        "jsonData": "={{ $json.text }}",
+        "textSplittingMode": "custom",
+        "options": {
+          "metadata": {
+            "metadataValues": [
+              {
+                "name": "source",
+                "value": "={{ $json.source_document }}"
+              }
+            ]
+          }
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        896,
+        416
+      ],
+      "id": "8a19fce3-cd3c-48ed-a4f6-fb8238310d6c",
+      "name": "Document Loader"
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "tableName": {
+          "__rl": true,
+          "value": "documents",
+          "mode": "list",
+          "cachedResultName": "documents"
+        },
+        "embeddingBatchSize": 1000,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.3,
+      "position": [
+        976,
+        -16
+      ],
+      "id": "500ac9c6-eb01-4db3-901e-62f822cd99a5",
+      "name": "Store Document"
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "={{ $json.pageContent }}",
+        "tableName": {
+          "__rl": true,
+          "value": "RAG",
+          "mode": "list",
+          "cachedResultName": "RAG"
+        },
+        "topK": 10,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.3,
+      "position": [
+        1776,
+        208
+      ],
+      "id": "b793e50b-f7fd-46dc-ac10-fcf190128909",
+      "name": "Search Documents"
+    },
+    {
+      "parameters": {
+        "formTitle": "Upload Document to Knowledge Base",
+        "formDescription": "Upload your PDF file, and the chatbot will read it to answer your questions.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Upload PDF",
+              "fieldType": "file",
+              "acceptFileTypes": ".pdf, .docx, .txt"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.6,
+      "position": [
+        -48,
+        32
+      ],
+      "id": "256ea416-ea79-468b-bbdb-9e7a45b87063",
+      "name": "On form submission"
+    },
+    {
+      "parameters": {
+        "public": true,
+        "initialMessages": "Hi there! 👋\nI am your document assistant. Ask me any question about the uploaded documents, and I will answer it.",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        1440,
+        -32
+      ],
+      "id": "77932a30-99d9-41ca-8116-cbee64fea0aa",
+      "name": "When chat message received"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "06d64c72-85ac-4cc6-9451-62ba0d768827",
+              "name": "source_document",
+              "value": "={{ $('On form submission').item.json['Upload PDF'][0].filename }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        736,
+        -16
+      ],
+      "id": "2609ec36-9aa6-4b94-ab61-47ed5cff3890",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "chunkOverlap": 200,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
+      "typeVersion": 1,
+      "position": [
+        896,
+        576
+      ],
+      "id": "68be2ce8-46ca-4180-98f7-b63af3030af5",
+      "name": "Recursive Character Text Splitter"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_ANALYTICS_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Sheet1",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Timestamp": "={{ $now }}",
+            "Question": "={{ $('When chat message received').item.json.chatInput }}",
+            "Answer": "={{ $json.output }}",
+            "Answer Found": "={{ (() => {\n  const ans = $json.output.toLowerCase();\n  const negativePhrases = ['not available', 'does not provide', 'no documents', \n    'not found', 'cannot find', 'unable to find', 'no information', \n    'not mentioned', 'does not contain'];\n  return negativePhrases.some(phrase => ans.includes(phrase)) ? 'No' : 'Yes';\n})() }}",
+            "Source Document": "={{ (() => {\n  const text = $json.output;\n  const bracketMatch = text.match(/\\(Source:\\s*([^)]+)\\)/);\n  if (bracketMatch) return bracketMatch[1].trim();\n  \n  const fileMatch = text.match(/[\\w. ]+\\.(pdf|docx|txt|doc)/i);\n  return fileMatch ? fileMatch[0].replace(/^[-•\\s]+/, '').trim() : 'N/A';\n})() }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Question",
+              "displayName": "Question",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Answer",
+              "displayName": "Answer",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Source Document",
+              "displayName": "Source Document",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Answer Found",
+              "displayName": "Answer Found",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2000,
+        -32
+      ],
+      "id": "3b557a50-871b-4ca9-9130-c637e13a86d0",
+      "name": "Log Query Analytics"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json['Upload PDF'][0].filename }}",
+                    "rightValue": ".pdf",
+                    "operator": {
+                      "type": "string",
+                      "operation": "endsWith"
+                    },
+                    "id": "66a313cc-5940-45df-824e-6bd0e7aae517"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "PDF"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "842d888e-2b16-47db-8eb0-acecd585c751",
+                    "leftValue": "={{ $json['Upload PDF'][0].filename }}",
+                    "rightValue": ".docx",
+                    "operator": {
+                      "type": "string",
+                      "operation": "endsWith"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Word"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "424e55e0-5ebe-4bbf-b37b-6c7574ae3679",
+                    "leftValue": "={{ $json['Upload PDF'][0].filename }}",
+                    "rightValue": ".txt",
+                    "operator": {
+                      "type": "string",
+                      "operation": "endsWith"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "txt"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        160,
+        16
+      ],
+      "id": "da717cf4-fa63-4564-9278-0ef7cc9035ea",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "operation": "text",
+        "binaryPropertyName": "Upload_PDF",
+        "destinationKey": "text",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        416,
+        240
+      ],
+      "id": "6f49fe9d-4708-4825-9a19-76257bcc6f8d",
+      "name": "Extract from File1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const mammoth = require('mammoth');\n\nconst binaryPropertyName = 'Upload_PDF';\nconst buffer = await this.helpers.getBinaryDataBuffer(0, binaryPropertyName);\n\nconst result = await mammoth.extractRawText({ buffer: buffer });\n\nreturn {\n  json: {\n    text: result.value\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        432,
+        -16
+      ],
+      "id": "33bb7fd8-7ce2-4017-ba95-e2a2a68f61cc",
+      "name": "Code in JavaScript"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Log Query Analytics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings OpenAI": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Store Document",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Embeddings": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Search Documents",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Document Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Store Document",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Store Document": {
+      "main": [
+        []
+      ]
+    },
+    "Search Documents": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Store Document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recursive Character Text Splitter": {
+      "ai_textSplitter": [
+        [
+          {
+            "node": "Document Loader",
+            "type": "ai_textSplitter",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extract from File1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File1": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  }
+}
