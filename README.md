@@ -43,6 +43,15 @@ Proposals remain subject to **human review and manual submission**. Published do
 [View both workflows and technical documentation →](projects/upwork-opportunity-assistant/README.md)
 
 
+### [Lead Scraper & AI Agent](projects/lead-scraper/README.md)
+
+**n8n · Apify · OpenAI · Google Sheets**  
+**12-node main scraper + 5-node calling agent | Sanitized exports available**
+
+A conversational agent turns a business-and-location request into a call to the main Lead Scraper. The scraper finds local businesses, processes their websites, extracts a contact email, prepares an outreach draft, and updates Google Sheets by website. Drafts are saved for review; emails are not sent.
+
+[View the scraper, calling agent, and setup guide →](projects/lead-scraper/README.md)
+
 ### [Multi-channel AI Agent](projects/multi-channel-ai-agent.md)
 
 **n8n · Supabase · Webhooks · Email · AI orchestration**  
@@ -60,7 +69,7 @@ The project brings together message normalization, customer matching, and conver
 
 | Project | What it does | Core tools |
 | --- | --- | --- |
-| **AI Lead Generation Agent** | Discovers local businesses, extracts and verifies contact information, prepares personalized outreach, and stores deduplicated leads. | n8n, Apify, OpenAI, Google Sheets |
+| **[Lead Scraper & AI Agent](projects/lead-scraper/README.md)** | An AI chat agent calls the main scraper to discover businesses, extract website emails, prepare outreach drafts, and update Sheets by website. | n8n, Apify, OpenAI, Google Sheets |
 | **Document-Based RAG Chatbot** | Processes documents into embeddings and retrieves relevant content so an assistant can answer from a knowledge base with source references. | n8n, Supabase, OpenAI |
 | **[Upwork Opportunity Assistant](projects/upwork-opportunity-assistant/README.md)** | Scores incoming jobs, retrieves portfolio context, drafts and critiques proposals, syncs GHL, and batches medium-priority jobs in a companion daily digest. | n8n, OpenAI, Supabase, Gmail, Sheets, GHL |
 | **City Weather Alert System** | Checks city temperatures on a schedule, records results, and sends email alerts. | n8n, OpenWeatherMap, Gmail |
