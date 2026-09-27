@@ -1,0 +1,527 @@
+{
+  "name": "Lead Scraper",
+  "nodes": [
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.apify.com/v2/actors/compass~crawler-google-places/run-sync-get-dataset-items?token=YOUR_APIFY_TOKEN",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"searchStringsArray\": [\"{{ $json.search_query }}\"],\n  \"maxCrawledPlacesPerSearch\": 20,\n  \"language\": \"en\"\n}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -480,
+        -176
+      ],
+      "id": "88c2fe9b-5c1f-45fe-85ed-31e622fd0f9a",
+      "name": "HTTP Request",
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "8c9c41c4-6b79-44a0-ba93-eb35af7b7a5f",
+              "leftValue": "={{ $json.website }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [
+        -256,
+        -176
+      ],
+      "id": "fd389f9a-af5d-40da-9566-a52c7a252ad6",
+      "name": "Filter"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        48,
+        -176
+      ],
+      "id": "f68d4f1d-c4bd-4abc-a1a3-d09679355a84",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.website }}",
+        "options": {
+          "allowUnauthorizedCerts": true,
+          "timeout": 10000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        336,
+        -160
+      ],
+      "id": "d64af69f-a1b3-4013-9530-03452e0e0068",
+      "name": "HTTP Request1",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Sheet1",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Business Name": "={{ $json.business_name }}",
+            "Website": "={{ $json.website }}",
+            "Phone": "={{ $json.phone }}",
+            "Address": "={{ $json.address }}",
+            "Emails": "={{ $json.emails_found }}",
+            "Outreach Draft": "={{ $json.outreach_draft }}"
+          },
+          "matchingColumns": [
+            "Website"
+          ],
+          "schema": [
+            {
+              "id": "Business Name",
+              "displayName": "Business Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Website",
+              "displayName": "Website",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Phone",
+              "displayName": "Phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Address",
+              "displayName": "Address",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Emails",
+              "displayName": "Emails",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Outreach Draft",
+              "displayName": "Outreach Draft",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        928,
+        288
+      ],
+      "id": "85b2c6e9-c2c5-4f6e-81ba-4f959e9d467f",
+      "name": "Append or update row in sheet"
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "search_query"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -976,
+        -176
+      ],
+      "id": "f72aa789-bf8d-4983-bfab-233da00c5f9d",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "content": "=Here is the raw HTML content of a website:\n\n{{ $json.cleaned_text }}\n\nExtract only one real, valid email address of the business owner/contact from this content.\n\nRules:\n- If it is a generic placeholder (e.g., example@, your@, test@, info@example, user@domain), respond only with \"Not Found\"\n- If there are multiple real emails, choose the most authoritative one (e.g., info@ or contact@ from the business's own domain)\n- Return only the email address or \"Not Found\", with no extra text or explanation"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        688,
+        -160
+      ],
+      "id": "86f70f87-b5cd-4f71-96f3-0f1493a15c04",
+      "name": "Message a model"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "content": "=Business Name: {{ $json.business_name }}\nAddress: {{ $json.address }}\nCategory: Interior Design / Home Services\n\nWrite a short professional cold outreach email for this business (60-80 words max):\n- Use their business name naturally\n- Include a genuine compliment or observation about their services\n- Present a clear collaboration/partnership proposal (such as web design, marketing services, etc. — whatever your actual offer is)\n- Keep a professional yet friendly tone\n- Provide only the email body, no subject line or extra explanation"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        240,
+        288
+      ],
+      "id": "2ac003e9-6a88-4fd7-b3da-8d484f58ab95",
+      "name": "Generate Outreach"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "0744f71a-446c-4db7-bc31-06dd6cd10679",
+              "name": "business_name",
+              "value": "={{ $('Format Data').item.json.business_name }}",
+              "type": "string"
+            },
+            {
+              "id": "3b105206-64c6-4cb7-b307-047c422d62de",
+              "name": "website",
+              "value": "={{ $('Format Data').item.json.website }}",
+              "type": "string"
+            },
+            {
+              "id": "7f5146fb-32f9-4dba-9107-a3d7d1a1005b",
+              "name": "phone",
+              "value": "={{ $('Format Data').item.json.phone }}",
+              "type": "string"
+            },
+            {
+              "id": "fc63853e-6310-4c87-b792-06cff1d16f0c",
+              "name": "address",
+              "value": "={{ $('Format Data').item.json.address }}",
+              "type": "string"
+            },
+            {
+              "id": "ce4d9e59-24c6-44c7-ae51-88f05808d0d5",
+              "name": "emails_found",
+              "value": "={{ $('Format Data').item.json.emails_found }}",
+              "type": "string"
+            },
+            {
+              "id": "a9710a74-c01d-4164-b35d-0d2dda78b82f",
+              "name": "outreach_draft",
+              "value": "={{ $json.output ? $json.output[0].content[0].text : 'N/A - Email Not Found' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        640,
+        288
+      ],
+      "id": "78a1765b-457d-483b-9f18-258fa6af4a6b",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "6a9427d6-964e-43a2-b0e3-169faf2afbe6",
+              "leftValue": "={{ $json.emails_found }}",
+              "rightValue": "Not Found",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1232,
+        -160
+      ],
+      "id": "b94e1291-634a-4bf1-a23a-c2d6ed39eebe",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "jsCode": "let html = $input.item.json.data || $input.item.json.body || '';\n\nlet cleaned = html\n  .replace(/<script[^>]*>[\\s\\S]*?<\\/script>/gi, '')\n  .replace(/<style[^>]*>[\\s\\S]*?<\\/style>/gi, '')\n  .replace(/<!--[\\s\\S]*?-->/g, '')\n  .replace(/<[^>]+>/g, ' ')\n  .replace(/\\s+/g, ' ')\n  .trim();\n\n// 8000 characters tak rakho (start + end dono cover ho, footer bhi aa jaye)\nif (cleaned.length > 8000) {\n  cleaned = cleaned.substring(0, 4000) + ' ... ' + cleaned.substring(cleaned.length - 4000);\n}\n\nreturn {\n  json: {\n    ...$('Loop Over Items').item.json,\n    cleaned_text: cleaned\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        512,
+        -160
+      ],
+      "id": "1fd87ed7-30c0-4b2e-be14-d04023100b95",
+      "name": "Clean HTML"
+    },
+    {
+      "parameters": {
+        "jsCode": "const aiEmailResponse = $json.output?.[0]?.content?.[0]?.text || '';\nconst cleanedEmail = aiEmailResponse.trim();\n\nconst finalEmail = (cleanedEmail.toLowerCase().includes('not found') || cleanedEmail === '') \n  ? 'Not Found' \n  : cleanedEmail;\n\nreturn {\n  json: {\n    business_name: $('Loop Over Items').item.json.title,\n    website: $('Loop Over Items').item.json.website,\n    phone: \"'\" + ($('Loop Over Items').item.json.phone || ''),\n    address: $('Loop Over Items').item.json.address,\n    emails_found: finalEmail\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        992,
+        -160
+      ],
+      "id": "df841ddc-63b6-4adc-a7a1-2565cd24db29",
+      "name": "Format Data"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "Clean HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append or update row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Format Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Outreach": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Append or update row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Generate Outreach",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clean HTML": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Data": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  }
+}
