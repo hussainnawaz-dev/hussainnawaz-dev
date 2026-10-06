@@ -6,7 +6,7 @@
 
 Building connected workflows that turn incoming data into useful actions.
 
-**1+ year of hands-on experience · Worked on 20+ projects · 3 internships**
+**1 year of hands-on experience · Worked on 20+ projects · 3 internships**
 
 [Lahore, Pakistan](#about-me) &nbsp;·&nbsp; [Email](mailto:hussainnawaz.tech@gmail.com) &nbsp;·&nbsp; [Featured project](#featured-project) &nbsp;·&nbsp; [AI/ML learning repository](https://github.com/hussainnawaz-dev/AIML-Internship-MuhammadHussainNawaz)
 
