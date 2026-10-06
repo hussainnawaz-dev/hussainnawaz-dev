@@ -18,7 +18,7 @@ Building connected workflows that turn incoming data into useful actions.
 
 I'm an Electrical Engineering student at **COMSATS University Islamabad, Lahore Campus**, focused on **AI automation, API integrations, and practical software solutions**.
 
-I have **1+ year of hands-on experience** and have worked on **20+ projects**, developing my skills through building, testing, and improving real systems. My work connects AI models, business tools, and databases through workflows that reduce repetitive tasks and keep information organized.
+I have **1 year of hands-on experience** and have worked on **20+ projects**, developing my skills through building, testing, and improving real systems. My work connects AI models, business tools, and databases through workflows that reduce repetitive tasks and keep information organized.
 
 Alongside automation development, I'm strengthening my foundations in **Python, data analysis, machine learning, and deep learning**.
 
